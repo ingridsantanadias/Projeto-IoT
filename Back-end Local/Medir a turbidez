@@ -1,0 +1,40 @@
+int sensorValor = A0; //A3 ou A0 ; // Atribui a porta Ax a variavel sensorValor
+int leitura; //Variavel que vai guardar os valores da leitura analogica do sensor 
+double calc_NTU(double volt); // recebe um parametro double e torna um double; tranformar tensão em NTU(medida da turbidez)
+double NTU = 0.0;
+
+
+void setup() {
+  // função  serial.begin  inicializa a comunicação serial entre o  ESP32 e o computador, através da porta USB. 
+  Serial.begin(115200);
+}
+
+
+void loop() {
+   leitura = analogRead (sensorValor); // Realiza a leitura analogica do sensor 
+   double  voltage = sensorValor *(5.0 / 1024.0); //Calcular a tensão em volts
+
+   NTU = calc_NTU(voltage);
+
+   Serial.print("Valor lido:"); // Imprime o valor 
+   Serial.println(NTU); // manda o valor da leitura para o monitor serial
+   delay(600); //Intervalo de 0,6 milisegundos entre as  leituras 
+   Serial.print("Estado da água: ");
+    if(NTU > 5.0){
+      Serial.println("Suja");
+    } else{
+      Serial.print("Limpa");
+    }
+}
+
+// Função para conversão de tensão para turbidez em NTU(Und. Nefelométricas de Turbidez)
+// Equação que relaciona tensão com NTU: NTU= -1120,4*volt*volt +5743,3*volt - 4352.9;
+// Esse função matemática tem o grafico de meia parábola invertida
+
+double calc_NTU(double volt)
+{
+  double NTU_val;
+  NTU_val = -1120,4*volt*volt +5743,3*volt - 4352.9;
+  
+  return NTU_val;
+}
