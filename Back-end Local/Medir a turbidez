@@ -1,4 +1,5 @@
-int sensorValor = A0; //A3 ou A0 ; // Atribui a porta Ax a variavel sensorValor
+#define D25 25
+int sensorValor = D25; // Atribui a porta Dx a variavel sensorValor
 int leitura; //Variavel que vai guardar os valores da leitura analogica do sensor 
 double calc_NTU(double volt); // recebe um parametro double e torna um double; tranformar tensão em NTU(medida da turbidez)
 double NTU = 0.0;
@@ -22,8 +23,10 @@ void loop() {
    Serial.print("Estado da água: ");
     if(NTU > 5.0){
       Serial.println("Suja");
+    } else if (NTU>1.0)   {
+      Serial.print("Pouco suja");
     } else{
-      Serial.print("Limpa");
+       Serial.print("Limpa");
     }
 }
 
