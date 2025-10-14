@@ -86,7 +86,7 @@ void loop() {
 
    Serial.print("Valor lido:"); // Imprime o valor 
    Serial.println(NTU); // manda o valor da leitura para o monitor serial
-   delay(600); //Intervalo de 0,6 milisegundos entre as  leituras 
+   delay(900); //Intervalo de 0,9 milisegundos entre as  leituras 
    Serial.print("Estado da água: ");
     if(NTU > 5.0){
       Serial.println("Suja");
@@ -101,7 +101,7 @@ void loop() {
      envia_dado(NTU);
      ultimoEnvio = tempoAtual;
   }
-delay(600);
+delay(900);
 }
 
 double calc_NTU(double volt)
