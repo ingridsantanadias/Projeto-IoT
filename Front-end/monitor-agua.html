@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Qualidade da Água</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 900px;
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #1a2a6c, #2a3a9c);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .status-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 30px 20px;
+            gap: 25px;
+        }
+        
+        .status-card {
+            flex: 1;
+            min-width: 250px;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .status-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .status-indicator {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            color: white;
+            transition: all 0.5s ease;
+        }
+        
+        .status-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .status-description {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        
+        .data-container {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .data-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .data-value {
+            font-weight: 700;
+            color: #1a2a6c;
+        }
+        
+        .chart-container {
+            padding: 20px;
+            height: 300px;
+        }
+        
+        .last-update {
+            text-align: center;
+            padding: 15px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .active {
+            border: 4px solid #fff;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.7);
+        }
+        
+        /* Cores para os diferentes estados */
+        .impropria {
+            background: linear-gradient(135deg, #b21f1f, #e74c3c);
+        }
+        
+        .excessiva {
+            background: linear-gradient(135deg, #fdbb2d, #f39c12);
+        }
+        
+        .limpa {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+        
+        .inactive {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            opacity: 0.7;
+        }
+        
+        @media (max-width: 768px) {
+            .status-container {
+                flex-direction: column;
+            }
+            
+            .status-card {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Monitor de Turbidez da Água</h1>
+            <p class="subtitle">Sistema IoT para análise da qualidade da água em tempo real</p>
+        </header>
+        
+        <div class="status-container">
+            <div class="status-card">
+                <div class="status-indicator inactive" id="indicator-1">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <h2 class="status-title">Água Imprópria</h2>
+                <div class="status-value" id="value-1">NTU > 5.0</div>
+                <p class="status-description">Água com alta turbidez, não recomendada para consumo</p>
+            </div>
+            
+            <div class="status-card">
+                <div class="status-indicator inactive" id="indicator-2">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h2 class="status-title">Quantidade Excessiva de Dejetos</h2>
+                <div class="status-value" id="value-2">1.0 < NTU ≤ 5.0</div>
+                <p class="status-description">Água com turbidez moderada, necessita de tratamento</p>
+            </div>
+            
+            <div class="status-card">
+                <div class="status-indicator inactive" id="indicator-3">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 class="status-title">Água Limpa</h2>
+                <div class="status-value" id="value-3">NTU ≤ 1.0</div>
+                <p class="status-description">Água com baixa turbidez, própria para consumo</p>
+            </div>
+        </div>
+        
+        <div class="data-container">
+            <div class="data-row">
+                <span class="data-label">Valor NTU Atual:</span>
+                <span class="data-value" id="current-ntu">--</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Tensão do Sensor:</span>
+                <span class="data-value" id="current-voltage">--</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Status da Água:</span>
+                <span class="data-value" id="current-status">Aguardando dados...</span>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="ntuChart"></canvas>
+        </div>
+        
+        <div class="last-update" id="last-update">
+            Última atualização: --
+        </div>
+    </div>
+
+    <!-- Incluindo Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Incluindo Font Awesome para ícones -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    
+    <script>
+        // Configurações do ThingSpeak
+        const THINGSPEAK_API_KEY = "EK2M8D6JGL4O3XW2"; //  API KEY
+        const THINGSPEAK_CHANNEL_ID = "3088689"; //  ID  canal
+        const UPDATE_INTERVAL = 15000; // 15 segundos (igual ao código Arduino)
+        
+        // Elementos DOM
+        const currentNtuElement = document.getElementById('current-ntu');
+        const currentVoltageElement = document.getElementById('current-voltage');
+        const currentStatusElement = document.getElementById('current-status');
+        const lastUpdateElement = document.getElementById('last-update');
+        
+        // Indicadores de status
+        const indicator1 = document.getElementById('indicator-1');
+        const indicator2 = document.getElementById('indicator-2');
+        const indicator3 = document.getElementById('indicator-3');
+        
+        // Gráfico
+        let ntuChart;
+        let ntuData = [];
+        let timeLabels = [];
+        
+        // Inicializar gráfico
+        function initializeChart() {
+            const ctx = document.getElementById('ntuChart').getContext('2d');
+            ntuChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Turbidez (NTU)',
+                        data: ntuData,
+                        borderColor: '#1a2a6c',
+                        backgroundColor: 'rgba(26, 42, 108, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Turbidez (NTU)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Tempo'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Atualizar indicadores de status com base no valor NTU
+        function updateStatusIndicators(ntuValue) {
+            // Remover classe 'active' de todos os indicadores
+            indicator1.classList.remove('active');
+            indicator2.classList.remove('active');
+            indicator3.classList.remove('active');
+            
+            // Remover classes de cor
+            indicator1.className = 'status-indicator inactive';
+            indicator2.className = 'status-indicator inactive';
+            indicator3.className = 'status-indicator inactive';
+            
+            // Determinar qual indicador deve estar ativo
+            if (ntuValue > 5.0) {
+                indicator1.className = 'status-indicator impropria active';
+                currentStatusElement.textContent = 'Água Imprópria';
+            } else if (ntuValue > 1.0) {
+                indicator2.className = 'status-indicator excessiva active';
+                currentStatusElement.textContent = 'Quantidade Excessiva de Dejetos';
+            } else {
+                indicator3.className = 'status-indicator limpa active';
+                currentStatusElement.textContent = 'Água Limpa';
+            }
+        }
+        
+        // Buscar dados do ThingSpeak
+        async function fetchThingSpeakData() {
+            try {
+                // Usar a API do ThingSpeak
+                // Esta é uma simulação que gera dados aleatórios; (PS: Lembrar de conectar para absorver os dados reais.)
+                
+                // Simular leitura do sensor (substitua por chamada real à API do ThingSpeak)
+                const simulatedVoltage = (Math.random() * 2.5).toFixed(3);
+                const simulatedNtu = calculateNtu(simulatedVoltage);
+                
+                // Atualizar a interface
+                currentNtuElement.textContent = simulatedNtu.toFixed(2) + ' NTU';
+                currentVoltageElement.textContent = simulatedVoltage + ' V';
+                
+                // Atualizar indicadores de status
+                updateStatusIndicators(simulatedNtu);
+                
+                // Atualizar gráfico
+                const now = new Date();
+                const timeString = now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds();
+                
+                ntuData.push(simulatedNtu);
+                timeLabels.push(timeString);
+                
+                // Manter apenas os últimos 20 pontos no gráfico
+                if (ntuData.length > 20) {
+                    ntuData.shift();
+                    timeLabels.shift();
+                }
+                
+                ntuChart.update();
+                
+                // Atualizar última leitura
+                lastUpdateElement.textContent = 'Última atualização: ' + now.toLocaleString('pt-BR');
+                
+            } catch (error) {
+                console.error('Erro ao buscar dados:', error);
+                currentStatusElement.textContent = 'Erro ao obter dados do sensor';
+            }
+        }
+        
+        // Calcular NTU com base na tensão (igual à função no Arduino)
+        function calculateNtu(voltage) {
+            if (voltage >= 1.5) {
+                return -15.0 * voltage + 23.25;
+            } else {
+                return (168.29 / voltage) - 85.122;
+            }
+        }
+        
+        // Inicializar a aplicação
+        function initializeApp() {
+            initializeChart();
+            
+            // Buscar dados imediatamente
+            fetchThingSpeakData();
+            
+            // Configurar atualização periódica
+            setInterval(fetchThingSpeakData, UPDATE_INTERVAL);
+        }
+        
+        // Iniciar quando a página carregar
+        window.addEventListener('load', initializeApp);
+    </script>
+</body>
+
+</html>
