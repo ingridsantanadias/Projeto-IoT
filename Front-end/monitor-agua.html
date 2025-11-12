@@ -237,10 +237,10 @@
     
     <script>
         // Configurações do ThingSpeak
-        const THINGSPEAK_API_KEY = "EK2M8D6JGL4O3XW2"; //  API KEY
+        const THINGSPEAK_API_KEY = "49KDH2H3MW7PR2ZL"; //  API KEY
         const THINGSPEAK_CHANNEL_ID = "3088689"; //  ID  canal
         const UPDATE_INTERVAL = 15000; // 15 segundos (igual ao código Arduino)
-        
+        const THINGSPEAK_URL = `GET https://api.thingspeak.com/channels/3088689/feeds.json?api_key=49KDH2H3MW7PR2ZL&results=2`;
         // Elementos DOM
         const currentNtuElement = document.getElementById('current-ntu');
         const currentVoltageElement = document.getElementById('current-voltage');
@@ -322,54 +322,70 @@
         }
         
         // Buscar dados do ThingSpeak
-        async function fetchThingSpeakData() {
-            try {
-                // Usar a API do ThingSpeak
-                // Esta é uma simulação que gera dados aleatórios; (PS: Lembrar de conectar para absorver os dados reais.)
-                
-                // Simular leitura do sensor (substitua por chamada real à API do ThingSpeak)
-                const simulatedVoltage = (Math.random() * 2.5).toFixed(3);
-                const simulatedNtu = calculateNtu(simulatedVoltage);
-                
-                // Atualizar a interface
-                currentNtuElement.textContent = simulatedNtu.toFixed(2) + ' NTU';
-                currentVoltageElement.textContent = simulatedVoltage + ' V';
-                
-                // Atualizar indicadores de status
-                updateStatusIndicators(simulatedNtu);
-                
-                // Atualizar gráfico
-                const now = new Date();
-                const timeString = now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds();
-                
-                ntuData.push(simulatedNtu);
-                timeLabels.push(timeString);
-                
-                // Manter apenas os últimos 20 pontos no gráfico
-                if (ntuData.length > 20) {
-                    ntuData.shift();
-                    timeLabels.shift();
+            async function fetchThingSpeakData() {
+                try {
+                    // --- Realiza a chamada à API do ThingSpeak ---
+                    const response = await fetch(THINGSPEAK_URL);
+                    const data = await response.json();
+
+                    // 1. Verifica se há dados (feeds)
+                    if (data.feeds && data.feeds.length > 0) {
+                        const lastFeed = data.feeds[0];
+
+                        // Supondo: Field 1 = NTU e Field 2 = Tensão. 
+                        const ntuString = lastFeed.field1;
+                        const voltageString = lastFeed.field2;
+
+                        const realNtu = parseFloat(ntuString);
+                        const realVoltage = parseFloat(voltageString);
+
+                        // 2. Verifica se os valores são numéricos e válidos
+                        if (!isNaN(realNtu) && !isNaN(realVoltage)) {
+
+                            // Atualizar a interface com os DADOS REAIS
+                            currentNtuElement.textContent = realNtu.toFixed(2) + ' NTU';
+                            currentVoltageElement.textContent = realVoltage.toFixed(3) + ' V';
+                            currentStatusElement.textContent = 'Sensor Ativo';
+
+                            // Atualizar indicadores de status
+                            updateStatusIndicators(realNtu);
+
+                            // Atualizar gráfico
+                            const now = new Date(lastFeed.created_at); // Usa o timestamp real do ThingSpeak
+                            const timeString = now.toLocaleTimeString('pt-BR');
+
+                            ntuData.push(realNtu);
+                            timeLabels.push(timeString);
+
+                            // Manter apenas os últimos 20 pontos no gráfico
+                            if (ntuData.length > 20) {
+                                ntuData.shift();
+                                timeLabels.shift();
+                            }
+
+                            ntuChart.update();
+                            // Atualizar última leitura
+                            lastUpdateElement.textContent = 'Última atualização: ' + new Date().toLocaleString('pt-BR');
+
+                        } else {
+                            throw new Error("Dados inválidos ou incompletos no ThingSpeak.");
+                        }
+                    } else {
+                        throw new Error("Nenhum feed encontrado no canal. O sensor está offline?");
+                    }
+
+                } catch (error) {
+                    console.error('Erro ao buscar dados:', error);
+                    // --- Estado de Falha / Sensor Desligado ---
+                    currentNtuElement.textContent = '--';
+                    currentVoltageElement.textContent = '--';
+                    currentStatusElement.textContent = '🚨 Sensor Desconectado ou Erro de API';
+                    lastUpdateElement.textContent = 'Última atualização: Falha na Conexão (' + new Date().toLocaleTimeString('pt-BR') + ')';
+
+                    // Desativa todos os indicadores de status
+                    updateStatusIndicators(NaN);
                 }
-                
-                ntuChart.update();
-                
-                // Atualizar última leitura
-                lastUpdateElement.textContent = 'Última atualização: ' + now.toLocaleString('pt-BR');
-                
-            } catch (error) {
-                console.error('Erro ao buscar dados:', error);
-                currentStatusElement.textContent = 'Erro ao obter dados do sensor';
             }
-        }
-        
-        // Calcular NTU com base na tensão (igual à função no Arduino)
-        function calculateNtu(voltage) {
-            if (voltage >= 1.5) {
-                return -15.0 * voltage + 23.25;
-            } else {
-                return (168.29 / voltage) - 85.122;
-            }
-        }
         
         // Inicializar a aplicação
         function initializeApp() {
@@ -388,3 +404,4 @@
 </body>
 
 </html>
+
