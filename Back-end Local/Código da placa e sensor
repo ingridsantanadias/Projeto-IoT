@@ -99,8 +99,10 @@ void loop() {
     Serial.println("Suja");
   } else if (NTU > 1.0) {
     Serial.println("Pouco suja");
-  } else {
+   } else if  ( NTU >= 0.0) {
     Serial.println("Limpa");
+  } else {
+    Serial.println( "Limpa");
   }
 
   unsigned long tempoAtual = millis();
