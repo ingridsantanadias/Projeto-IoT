@@ -230,17 +230,16 @@
         </div>
     </div>
 
-    <!-- Incluindo Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Incluindo Font Awesome para ícones -->
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     
     <script>
         // Configurações do ThingSpeak
-        const THINGSPEAK_API_KEY = "49KDH2H3MW7PR2ZL"; //  API KEY
-        const THINGSPEAK_CHANNEL_ID = "3088689"; //  ID  canal
+        const THINGSPEAK_API_KEY = "49KDH2H3MW7PR2ZL"; //  API KEY
+        const THINGSPEAK_CHANNEL_ID = "3088689"; //  ID  canal
         const UPDATE_INTERVAL = 15000; // 15 segundos (igual ao código Arduino)
-        const THINGSPEAK_URL = `GET https://api.thingspeak.com/channels/3088689/feeds.json?api_key=49KDH2H3MW7PR2ZL&results=2`;
+        // A CORREÇÃO É FEITA AQUI: Apenas a URL, sem o método 'GET'
+        const THINGSPEAK_URL = `https://api.thingspeak.com/channels/3088689/fields/1.json?api_key=49KDH2H3MW7PR2ZL&results=2`;
         // Elementos DOM
         const currentNtuElement = document.getElementById('current-ntu');
         const currentVoltageElement = document.getElementById('current-voltage');
@@ -315,77 +314,87 @@
             } else if (ntuValue > 1.0) {
                 indicator2.className = 'status-indicator excessiva active';
                 currentStatusElement.textContent = 'Quantidade Excessiva de Dejetos';
-            } else {
+            } else if (!isNaN(ntuValue)) { // Adiciona verificação para dados válidos
                 indicator3.className = 'status-indicator limpa active';
                 currentStatusElement.textContent = 'Água Limpa';
             }
         }
         
         // Buscar dados do ThingSpeak
-            async function fetchThingSpeakData() {
-                try {
-                    // --- Realiza a chamada à API do ThingSpeak ---
-                    const response = await fetch(THINGSPEAK_URL);
-                    const data = await response.json();
+        async function fetchThingSpeakData() {
+            try {
+                // O método fetch usa a URL corrigida
+                const response = await fetch(THINGSPEAK_URL);
+                
+                // Verifica se a resposta HTTP foi bem-sucedida (status 200)
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
 
-                    // 1. Verifica se há dados (feeds)
-                    if (data.feeds && data.feeds.length > 0) {
-                        const lastFeed = data.feeds[0];
+                const data = await response.json();
 
-                        // Supondo: Field 1 = NTU e Field 2 = Tensão. 
-                        const ntuString = lastFeed.field1;
-                        const voltageString = lastFeed.field2;
+                // 1. Verifica se há dados (feeds)
+                if (data.feeds && data.feeds.length > 0) {
+                    // Pega o dado mais recente (o primeiro no array com results=2)
+                    const lastFeed = data.feeds[data.feeds.length - 1]; // Pegamos o último para ser o mais recente
 
-                        const realNtu = parseFloat(ntuString);
-                        const realVoltage = parseFloat(voltageString);
+                    // Supondo: Field 1 = NTU e Field 2 = Tensão. 
+                    const ntuString = lastFeed.field1;
+                    const voltageString = lastFeed.field2;
 
-                        // 2. Verifica se os valores são numéricos e válidos
-                        if (!isNaN(realNtu) && !isNaN(realVoltage)) {
+                    const realNtu = parseFloat(ntuString);
+                    const realVoltage = parseFloat(voltageString);
 
-                            // Atualizar a interface com os DADOS REAIS
-                            currentNtuElement.textContent = realNtu.toFixed(2) + ' NTU';
-                            currentVoltageElement.textContent = realVoltage.toFixed(3) + ' V';
-                            currentStatusElement.textContent = 'Sensor Ativo';
+                    // 2. Verifica se os valores são numéricos e válidos
+                    if (!isNaN(realNtu) && !isNaN(realVoltage)) {
 
-                            // Atualizar indicadores de status
-                            updateStatusIndicators(realNtu);
+                        // Atualizar a interface com os DADOS REAIS
+                        currentNtuElement.textContent = realNtu.toFixed(2) + ' NTU';
+                        currentVoltageElement.textContent = realVoltage.toFixed(3) + ' V';
+                        
+                        // Atualizar indicadores de status e status text
+                        updateStatusIndicators(realNtu);
 
-                            // Atualizar gráfico
-                            const now = new Date(lastFeed.created_at); // Usa o timestamp real do ThingSpeak
-                            const timeString = now.toLocaleTimeString('pt-BR');
+                        // Atualizar gráfico
+                        const now = new Date(lastFeed.created_at); // Usa o timestamp real do ThingSpeak
+                        const timeString = now.toLocaleTimeString('pt-BR');
 
+                        // Adicionar apenas o dado mais recente se não for uma atualização inicial
+                        if (ntuData.length === 0 || ntuData[ntuData.length - 1] !== realNtu) {
                             ntuData.push(realNtu);
                             timeLabels.push(timeString);
-
-                            // Manter apenas os últimos 20 pontos no gráfico
-                            if (ntuData.length > 20) {
-                                ntuData.shift();
-                                timeLabels.shift();
-                            }
-
-                            ntuChart.update();
-                            // Atualizar última leitura
-                            lastUpdateElement.textContent = 'Última atualização: ' + new Date().toLocaleString('pt-BR');
-
-                        } else {
-                            throw new Error("Dados inválidos ou incompletos no ThingSpeak.");
                         }
+                        
+                        // Manter apenas os últimos 20 pontos no gráfico
+                        if (ntuData.length > 20) {
+                            ntuData.shift();
+                            timeLabels.shift();
+                        }
+
+                        ntuChart.update();
+                        
+                        // Atualizar última leitura
+                        lastUpdateElement.textContent = 'Última atualização: ' + new Date().toLocaleString('pt-BR');
+
                     } else {
-                        throw new Error("Nenhum feed encontrado no canal. O sensor está offline?");
+                        throw new Error("Dados inválidos ou incompletos no ThingSpeak (Field1/Field2).");
                     }
-
-                } catch (error) {
-                    console.error('Erro ao buscar dados:', error);
-                    // --- Estado de Falha / Sensor Desligado ---
-                    currentNtuElement.textContent = '--';
-                    currentVoltageElement.textContent = '--';
-                    currentStatusElement.textContent = '🚨 Sensor Desconectado ou Erro de API';
-                    lastUpdateElement.textContent = 'Última atualização: Falha na Conexão (' + new Date().toLocaleTimeString('pt-BR') + ')';
-
-                    // Desativa todos os indicadores de status
-                    updateStatusIndicators(NaN);
+                } else {
+                    throw new Error("Nenhum feed encontrado no canal. O sensor está offline?");
                 }
+
+            } catch (error) {
+                console.error('Erro ao buscar dados:', error);
+                // --- Estado de Falha / Sensor Desligado ---
+                currentNtuElement.textContent = '--';
+                currentVoltageElement.textContent = '--';
+                currentStatusElement.textContent = '🚨 Sensor Desconectado ou Erro de API';
+                lastUpdateElement.textContent = 'Última atualização: Falha na Conexão (' + new Date().toLocaleTimeString('pt-BR') + ')';
+
+                // Desativa todos os indicadores de status
+                updateStatusIndicators(NaN);
             }
+        }
         
         // Inicializar a aplicação
         function initializeApp() {
@@ -404,4 +413,3 @@
 </body>
 
 </html>
-
