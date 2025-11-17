@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Qualidade da Água</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+
     <style>
         * {
             margin: 0;
@@ -231,185 +234,175 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-    
+
     <script>
-        // Configurações do ThingSpeak
-        const THINGSPEAK_API_KEY = "49KDH2H3MW7PR2ZL"; //  API KEY
-        const THINGSPEAK_CHANNEL_ID = "3088689"; //  ID  canal
-        const UPDATE_INTERVAL = 15000; // 15 segundos (igual ao código Arduino)
-        // A CORREÇÃO É FEITA AQUI: Apenas a URL, sem o método 'GET'
-        const THINGSPEAK_URL = `https://api.thingspeak.com/channels/3088689/fields/1.json?api_key=49KDH2H3MW7PR2ZL&results=2`;
-        // Elementos DOM
-        const currentNtuElement = document.getElementById('current-ntu');
-        const currentVoltageElement = document.getElementById('current-voltage');
-        const currentStatusElement = document.getElementById('current-status');
-        const lastUpdateElement = document.getElementById('last-update');
-        
-        // Indicadores de status
-        const indicator1 = document.getElementById('indicator-1');
-        const indicator2 = document.getElementById('indicator-2');
-        const indicator3 = document.getElementById('indicator-3');
-        
-        // Gráfico
-        let ntuChart;
-        let ntuData = [];
-        let timeLabels = [];
-        
-        // Inicializar gráfico
-        function initializeChart() {
-            const ctx = document.getElementById('ntuChart').getContext('2d');
-            ntuChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: timeLabels,
-                    datasets: [{
-                        label: 'Turbidez (NTU)',
-                        data: ntuData,
-                        borderColor: '#1a2a6c',
-                        backgroundColor: 'rgba(26, 42, 108, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Turbidez (NTU)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Tempo'
-                            }
+    // --- Configurações ---
+    const THINGSPEAK_READ_KEY = "49KDH2H3MW7PR2ZL"; 
+    const THINGSPEAK_CHANNEL_ID = "3088689"; 
+    const UPDATE_INTERVAL = 15000; 
+
+    // URL da API (correta)
+    const THINGSPEAK_URL = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?api_key=${THINGSPEAK_READ_KEY}&results=1`;
+
+    // --- Elementos DOM ---
+    const currentNtuElement = document.getElementById('current-ntu');
+    const currentVoltageElement = document.getElementById('current-voltage'); 
+    const currentStatusElement = document.getElementById('current-status');
+    const lastUpdateElement = document.getElementById('last-update');
+    
+    // Indicadores de status
+    const indicator1 = document.getElementById('indicator-1');
+    const indicator2 = document.getElementById('indicator-2');
+    const indicator3 = document.getElementById('indicator-3');
+    
+    // Gráfico
+    let ntuChart;
+    let ntuData = [];
+    let timeLabels = [];
+    
+    // Inicializar gráfico (função original)
+    function initializeChart() {
+        const ctx = document.getElementById('ntuChart').getContext('2d');
+        ntuChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeLabels,
+                datasets: [{
+                    label: 'Turbidez (NTU)',
+                    data: ntuData,
+                    borderColor: '#1a2a6c',
+                    backgroundColor: 'rgba(26, 42, 108, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Turbidez (NTU)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Tempo'
                         }
                     }
                 }
-            });
-        }
-        
-        // Atualizar indicadores de status com base no valor NTU
-        function updateStatusIndicators(ntuValue) {
-            // Remover classe 'active' de todos os indicadores
-            indicator1.classList.remove('active');
-            indicator2.classList.remove('active');
-            indicator3.classList.remove('active');
-            
-            // Remover classes de cor
-            indicator1.className = 'status-indicator inactive';
-            indicator2.className = 'status-indicator inactive';
-            indicator3.className = 'status-indicator inactive';
-            
-            // Determinar qual indicador deve estar ativo
-            if (ntuValue > 5.0) {
-                indicator1.className = 'status-indicator impropria active';
-                currentStatusElement.textContent = 'Água Imprópria';
-            } else if (ntuValue > 1.0) {
-                indicator2.className = 'status-indicator excessiva active';
-                currentStatusElement.textContent = 'Quantidade Excessiva de Dejetos';
-            } else if (!isNaN(ntuValue)) { // Adiciona verificação para dados válidos
-                indicator3.className = 'status-indicator limpa active';
-                currentStatusElement.textContent = 'Água Limpa';
             }
-        }
+        });
+    }
+    
+    // Atualizar indicadores de status (função original)
+    function updateStatusIndicators(ntuValue) {
+        indicator1.classList.remove('active');
+        indicator2.classList.remove('active');
+        indicator3.classList.remove('active');
+        indicator1.className = 'status-indicator inactive';
+        indicator2.className = 'status-indicator inactive';
+        indicator3.className = 'status-indicator inactive';
         
-        // Buscar dados do ThingSpeak
-        async function fetchThingSpeakData() {
-            try {
-                // O método fetch usa a URL corrigida
-                const response = await fetch(THINGSPEAK_URL);
+        if (ntuValue > 5.0) {
+            indicator1.className = 'status-indicator impropria active';
+            currentStatusElement.textContent = 'Água Imprópria';
+        } else if (ntuValue > 1.0) {
+            indicator2.className = 'status-indicator excessiva active';
+            currentStatusElement.textContent = 'Quantidade Excessiva de Dejetos';
+        } else if (!isNaN(ntuValue)) { 
+            indicator3.className = 'status-indicator limpa active';
+            currentStatusElement.textContent = 'Água Limpa';
+        }
+    }
+    
+    async function fetchThingSpeakData() {
+        try {
+            const response = await fetch(THINGSPEAK_URL);
+            
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.feeds && data.feeds.length > 0) {
                 
-                // Verifica se a resposta HTTP foi bem-sucedida (status 200)
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP: ${response.status}`);
-                }
+                const lastFeed = data.feeds[0]; 
 
-                const data = await response.json();
+                // 1. LER APENAS O FIELD 1
+                const ntuString = lastFeed.field1;
+                const realNtu = parseFloat(ntuString);
 
-                // 1. Verifica se há dados (feeds)
-                if (data.feeds && data.feeds.length > 0) {
-                    // Pega o dado mais recente (o primeiro no array com results=2)
-                    const lastFeed = data.feeds[data.feeds.length - 1]; // Pegamos o último para ser o mais recente
+                // 2. VERIFICAR APENAS O FIELD 1
+                if (!isNaN(realNtu)) { 
 
-                    // Supondo: Field 1 = NTU e Field 2 = Tensão. 
-                    const ntuString = lastFeed.field1;
-                    const voltageString = lastFeed.field2;
+                    // Atualizar a interface
+                    currentNtuElement.textContent = realNtu.toFixed(2) + ' NTU';
+                    
+                    currentVoltageElement.textContent = '--'; // Apenas mostre um traço
 
-                    const realNtu = parseFloat(ntuString);
-                    const realVoltage = parseFloat(voltageString);
+                    updateStatusIndicators(realNtu);
 
-                    // 2. Verifica se os valores são numéricos e válidos
-                    if (!isNaN(realNtu) && !isNaN(realVoltage)) {
+                    // Atualizar gráfico
+                    const now = new Date(lastFeed.created_at); 
+                    const timeString = now.toLocaleTimeString('pt-BR');
 
-                        // Atualizar a interface com os DADOS REAIS
-                        currentNtuElement.textContent = realNtu.toFixed(2) + ' NTU';
-                        currentVoltageElement.textContent = realVoltage.toFixed(3) + ' V';
-                        
-                        // Atualizar indicadores de status e status text
-                        updateStatusIndicators(realNtu);
-
-                        // Atualizar gráfico
-                        const now = new Date(lastFeed.created_at); // Usa o timestamp real do ThingSpeak
-                        const timeString = now.toLocaleTimeString('pt-BR');
-
-                        // Adicionar apenas o dado mais recente se não for uma atualização inicial
-                        if (ntuData.length === 0 || ntuData[ntuData.length - 1] !== realNtu) {
-                            ntuData.push(realNtu);
-                            timeLabels.push(timeString);
-                        }
-                        
-                        // Manter apenas os últimos 20 pontos no gráfico
-                        if (ntuData.length > 20) {
-                            ntuData.shift();
-                            timeLabels.shift();
-                        }
-
-                        ntuChart.update();
-                        
-                        // Atualizar última leitura
-                        lastUpdateElement.textContent = 'Última atualização: ' + new Date().toLocaleString('pt-BR');
-
-                    } else {
-                        throw new Error("Dados inválidos ou incompletos no ThingSpeak (Field1/Field2).");
+                    ntuData.push(realNtu);
+                    timeLabels.push(timeString);
+                    
+                    if (ntuData.length > 20) {
+                        ntuData.shift();
+                        timeLabels.shift();
                     }
+                    
+                    // Verifica se o gráfico já foi inicializado antes de atualizar
+                    if (ntuChart) {
+                        ntuChart.update();
+                    }
+                    
+                    lastUpdateElement.textContent = 'Última atualização: ' + new Date().toLocaleString('pt-BR');
+
                 } else {
-                    throw new Error("Nenhum feed encontrado no canal. O sensor está offline?");
+                    throw new Error("Dados inválidos no ThingSpeak (Field1).");
                 }
-
-            } catch (error) {
-                console.error('Erro ao buscar dados:', error);
-                // --- Estado de Falha / Sensor Desligado ---
-                currentNtuElement.textContent = '--';
-                currentVoltageElement.textContent = '--';
-                currentStatusElement.textContent = '🚨 Sensor Desconectado ou Erro de API';
-                lastUpdateElement.textContent = 'Última atualização: Falha na Conexão (' + new Date().toLocaleTimeString('pt-BR') + ')';
-
-                // Desativa todos os indicadores de status
-                updateStatusIndicators(NaN);
+            } else {
+                throw new Error("Nenhum feed encontrado no canal. O sensor está offline?");
             }
-        }
-        
-        // Inicializar a aplicação
-        function initializeApp() {
-            initializeChart();
-            
-            // Buscar dados imediatamente
-            fetchThingSpeakData();
-            
-            // Configurar atualização periódica
-            setInterval(fetchThingSpeakData, UPDATE_INTERVAL);
-        }
-        
-        // Iniciar quando a página carregar
-        window.addEventListener('load', initializeApp);
-    </script>
-</body>
 
+        } catch (error) {
+            console.error('Erro ao buscar dados:', error);
+            // Estado de Falha 
+            currentNtuElement.textContent = '--';
+            currentVoltageElement.textContent = '--';
+            currentStatusElement.textContent = '🚨 Sensor Desconectado ou Erro de API';
+            lastUpdateElement.textContent = 'Última atualização: Falha na Conexão (' + new Date().toLocaleTimeString('pt-BR') + ')';
+            updateStatusIndicators(NaN);
+        }
+    }
+    
+    // Inicializar a aplicação
+    function initializeApp() {
+        try {
+            initializeChart(); // Tenta inicializar o gráfico
+        } catch (e) {
+            console.error("Erro ao inicializar o Chart.js:", e);
+            // Se o gráfico falhar, pelo menos os dados são buscados
+        }
+        
+        fetchThingSpeakData(); // Buscar dados imediatamente
+        
+        // Configurar atualização periódica
+        setInterval(fetchThingSpeakData, UPDATE_INTERVAL);
+    }
+    
+    // Iniciar quando a página carregar
+    window.addEventListener('load', initializeApp);
+</script>
+
+</body>
 </html>
