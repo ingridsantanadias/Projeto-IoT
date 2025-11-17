@@ -16,9 +16,9 @@ double calc_NTU(double volt);
 double NTU = 0.0;
 double voltage = 0.0;
 void setup_wifi_networks() {
-  wifiMulti.addAP("redeum", "senha");
-  wifiMulti.addAP("rededois", "senha");
-  wifiMulti.addAP("redetres", "senha");
+  wifiMulti.addAP("redeum", "senha1");
+  wifiMulti.addAP("rededois", "senha2");
+  wifiMulti.addAP("redetres", "senha3");
 }
 
 void conecta_wifi() {
@@ -84,9 +84,6 @@ void loop() {
   int leitura = analogRead(SENSOR_PIN); 
   double voltage = leitura * (3.3 / 4095.0);
   NTU = calc_NTU(voltage); 
-  if (NTU < 0.0) {
-    NTU = 0.0;
-  }
 
   Serial.print("Leitura bruta: ");
   Serial.println(leitura);
